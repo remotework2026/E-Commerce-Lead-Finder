@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 type Lead = {
   id: number;
@@ -9,7 +9,7 @@ type Lead = {
   signal: string;
 };
 
-const PASSWORD = "1234"; // change this
+const PASSWORD = "1234";
 
 const SHEET_API_URL =
   "https://sheets.googleapis.com/v4/spreadsheets/1sf9UHNwvOkFIvRU_N4L4RB9t6h4zy3OxYdNkJm98Od8/values/A2:D100?key=AIzaSyBUevc3gkpHN1c76OdG47NyFZE1kzpvMnM";
@@ -55,9 +55,17 @@ export default function App() {
     if (authenticated) loadLeads();
   }, [authenticated]);
 
+  const filteredLeads = useMemo(() => {
+    return leads.filter((lead) =>
+      `${lead.company} ${lead.niche} ${lead.email} ${lead.signal}`
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    );
+  }, [leads, search]);
+
   const addLead = async () => {
     if (!form.company || !form.email) {
-      alert("Company and Email are required");
+      alert("Company and email are required.");
       return;
     }
 
@@ -66,36 +74,29 @@ export default function App() {
     await fetch(WEB_APP_URL, {
       method: "POST",
       mode: "no-cors",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
 
-    setForm({
-      company: "",
-      niche: "",
-      email: "",
-      signal: "",
-    });
-
+    setForm({ company: "", niche: "", email: "", signal: "" });
     setSaving(false);
+
     setTimeout(loadLeads, 1500);
   };
 
-  const generateMessage = (lead: Lead) => {
+  const generateMessage = (lead: Lead): string => {
     return `Hi ${lead.company},
 
-I saw that you're in the ${lead.niche} space.
+I saw you're in the ${lead.niche} space.
 
-We help e-commerce brands like yours hire trained remote workers for customer support, admin work, order tracking, and daily operations.
+We help e-commerce brands hire trained remote workers for customer support, order tracking, admin tasks, and daily operations.
 
-This helps store owners save time, reply faster to customers, and reduce hiring costs.
+This helps store owners save time, reply faster to customers, and reduce hiring costs without hiring locally.
 
 Would you be open to a quick 15-minute call this week?
 
 Best,
-Boyet Santos`;
+Boyet`;
   };
 
   const copyMessage = () => {
@@ -104,186 +105,368 @@ Boyet Santos`;
     alert("Message copied!");
   };
 
-  const filteredLeads = leads.filter((lead) =>
-    `${lead.company} ${lead.niche} ${lead.email} ${lead.signal}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
-
   if (!authenticated) {
     return (
-      <div style={{ padding: 50, fontFamily: "Arial" }}>
-        <h1>E-commerce Lead Finder CRM</h1>
-        <h2>Login Required</h2>
+      <main style={styles.loginPage}>
+        <div style={styles.loginCard}>
+          <h1 style={styles.logo}>E-Commerce Lead Finder</h1>
+          <p style={styles.muted}>Private CRM for staffing agency leads</p>
 
-        <input
-          type="password"
-          placeholder="Enter password"
-          value={inputPassword}
-          onChange={(e) => setInputPassword(e.target.value)}
-          style={{
-            padding: 12,
-            width: 300,
-            marginBottom: 10,
-            display: "block",
-          }}
-        />
+          <input
+            type="password"
+            placeholder="Enter password"
+            value={inputPassword}
+            onChange={(e) => setInputPassword(e.target.value)}
+            style={styles.input}
+          />
 
-        <button
-          onClick={() => {
-            if (inputPassword === PASSWORD) {
-              setAuthenticated(true);
-            } else {
-              alert("Wrong password");
-            }
-          }}
-          style={{ padding: 12 }}
-        >
-          Login
-        </button>
-      </div>
+          <button
+            style={styles.primaryButton}
+            onClick={() => {
+              if (inputPassword === PASSWORD) setAuthenticated(true);
+              else alert("Wrong password");
+            }}
+          >
+            Login
+          </button>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div style={{ padding: 20, fontFamily: "Arial" }}>
-      <h1>E-commerce Lead Finder CRM</h1>
+    <main style={styles.app}>
+      <aside style={styles.sidebar}>
+        <h2 style={styles.sidebarTitle}>Lead CRM</h2>
+        <p style={styles.sidebarText}>Remote staffing agency</p>
 
-      <button
-        onClick={() => setAuthenticated(false)}
-        style={{ marginBottom: 20, padding: 8 }}
-      >
-        Logout
-      </button>
-
-      <div
-        style={{
-          border: "1px solid #ddd",
-          padding: 20,
-          marginBottom: 20,
-          maxWidth: 420,
-        }}
-      >
-        <h2>Add New Lead</h2>
-
-        <input
-          placeholder="Company"
-          value={form.company}
-          onChange={(e) => setForm({ ...form, company: e.target.value })}
-          style={{ display: "block", marginBottom: 8, padding: 10, width: "100%" }}
-        />
-
-        <input
-          placeholder="Niche"
-          value={form.niche}
-          onChange={(e) => setForm({ ...form, niche: e.target.value })}
-          style={{ display: "block", marginBottom: 8, padding: 10, width: "100%" }}
-        />
-
-        <input
-          placeholder="Email"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-          style={{ display: "block", marginBottom: 8, padding: 10, width: "100%" }}
-        />
-
-        <input
-          placeholder="Signal"
-          value={form.signal}
-          onChange={(e) => setForm({ ...form, signal: e.target.value })}
-          style={{ display: "block", marginBottom: 8, padding: 10, width: "100%" }}
-        />
-
-        <button onClick={addLead} disabled={saving} style={{ padding: 12 }}>
-          {saving ? "Saving..." : "Add Lead"}
-        </button>
-      </div>
-
-      <input
-        placeholder="Search leads..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        style={{
-          padding: 10,
-          width: 350,
-          marginBottom: 20,
-          display: "block",
-        }}
-      />
-
-      <div style={{ display: "flex", gap: 30 }}>
-        <div style={{ width: 350 }}>
-          <h2>Leads</h2>
-
-          {filteredLeads.map((lead) => (
-            <div
-              key={lead.id}
-              onClick={() => setSelectedLead(lead)}
-              style={{
-                border: "1px solid gray",
-                marginBottom: 8,
-                padding: 12,
-                cursor: "pointer",
-                background:
-                  selectedLead?.id === lead.id ? "#f0f0f0" : "white",
-              }}
-            >
-              <b>{lead.company}</b>
-              <div>{lead.niche}</div>
-              <small>{lead.email}</small>
-            </div>
-          ))}
+        <div style={styles.sidebarStat}>
+          <span>Total Leads</span>
+          <b>{leads.length}</b>
         </div>
 
-        {selectedLead && (
-          <div style={{ width: 450 }}>
-            <h2>{selectedLead.company}</h2>
-            <p>
-              <b>Niche:</b> {selectedLead.niche}
-            </p>
-            <p>
-              <b>Email:</b> {selectedLead.email}
-            </p>
-            <p>
-              <b>Signal:</b> {selectedLead.signal}
-            </p>
+        <div style={styles.sidebarStat}>
+          <span>Visible</span>
+          <b>{filteredLeads.length}</b>
+        </div>
 
-            <h3>Outreach Message</h3>
+        <button style={styles.logoutButton} onClick={() => setAuthenticated(false)}>
+          Logout
+        </button>
+      </aside>
 
-            <textarea
-              value={generateMessage(selectedLead)}
-              readOnly
-              style={{
-                width: "100%",
-                height: 220,
-                padding: 10,
-                marginTop: 10,
-                display: "block",
-              }}
+      <section style={styles.content}>
+        <header style={styles.header}>
+          <div>
+            <h1 style={styles.title}>E-commerce Client Pipeline</h1>
+            <p style={styles.muted}>
+              Add leads, track prospects, and generate outreach messages.
+            </p>
+          </div>
+
+          <button style={styles.secondaryButton} onClick={loadLeads}>
+            Refresh
+          </button>
+        </header>
+
+        <section style={styles.cards}>
+          <div style={styles.card}>
+            <p style={styles.cardLabel}>Total Leads</p>
+            <h2>{leads.length}</h2>
+          </div>
+
+          <div style={styles.card}>
+            <p style={styles.cardLabel}>Search Results</p>
+            <h2>{filteredLeads.length}</h2>
+          </div>
+
+          <div style={styles.card}>
+            <p style={styles.cardLabel}>Selected Lead</p>
+            <h2>{selectedLead ? selectedLead.company : "None"}</h2>
+          </div>
+        </section>
+
+        <section style={styles.grid}>
+          <div style={styles.panel}>
+            <h2>Add New Lead</h2>
+
+            <input
+              placeholder="Company"
+              value={form.company}
+              onChange={(e) => setForm({ ...form, company: e.target.value })}
+              style={styles.input}
             />
 
-            <button onClick={copyMessage} style={{ marginTop: 10, padding: 12 }}>
-              Copy Message
-            </button>
+            <input
+              placeholder="Niche"
+              value={form.niche}
+              onChange={(e) => setForm({ ...form, niche: e.target.value })}
+              style={styles.input}
+            />
 
-            <a
-              href={`mailto:${selectedLead.email}?subject=Quick help for ${selectedLead.company}&body=${encodeURIComponent(
-                generateMessage(selectedLead)
-              )}`}
-              style={{
-                display: "inline-block",
-                marginLeft: 10,
-                padding: 12,
-                background: "#222",
-                color: "white",
-                textDecoration: "none",
-              }}
-            >
-              Open Email
-            </a>
+            <input
+              placeholder="Email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              style={styles.input}
+            />
+
+            <input
+              placeholder="Signal / buying reason"
+              value={form.signal}
+              onChange={(e) => setForm({ ...form, signal: e.target.value })}
+              style={styles.input}
+            />
+
+            <button style={styles.primaryButton} onClick={addLead} disabled={saving}>
+              {saving ? "Saving..." : "Add Lead"}
+            </button>
           </div>
-        )}
-      </div>
-    </div>
+
+          <div style={styles.panel}>
+            <h2>Lead Search</h2>
+
+            <input
+              placeholder="Search company, niche, email, signal..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={styles.input}
+            />
+
+            <div style={styles.leadList}>
+              {filteredLeads.map((lead) => (
+                <button
+                  key={lead.id}
+                  onClick={() => setSelectedLead(lead)}
+                  style={{
+                    ...styles.leadItem,
+                    background:
+                      selectedLead?.id === lead.id ? "#eef2ff" : "#ffffff",
+                    borderColor:
+                      selectedLead?.id === lead.id ? "#4f46e5" : "#e5e7eb",
+                  }}
+                >
+                  <b>{lead.company}</b>
+                  <span>{lead.niche}</span>
+                  <small>{lead.email}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={styles.panelWide}>
+            {selectedLead ? (
+              <>
+                <h2>{selectedLead.company}</h2>
+
+                <div style={styles.detailBox}>
+                  <p><b>Niche:</b> {selectedLead.niche}</p>
+                  <p><b>Email:</b> {selectedLead.email}</p>
+                  <p><b>Signal:</b> {selectedLead.signal}</p>
+                </div>
+
+                <h3>Outreach Message</h3>
+
+                <textarea
+                  readOnly
+                  value={generateMessage(selectedLead)}
+                  style={styles.textarea}
+                />
+
+                <div style={styles.actions}>
+                  <button style={styles.primaryButton} onClick={copyMessage}>
+                    Copy Message
+                  </button>
+
+                  <a
+                    style={styles.darkButton}
+                    href={`mailto:${selectedLead.email}?subject=Quick help for ${selectedLead.company}&body=${encodeURIComponent(
+                      generateMessage(selectedLead)
+                    )}`}
+                  >
+                    Open Email
+                  </a>
+                </div>
+              </>
+            ) : (
+              <p>No lead selected.</p>
+            )}
+          </div>
+        </section>
+      </section>
+    </main>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  loginPage: {
+    minHeight: "100vh",
+    background: "#0f172a",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontFamily: "Arial",
+  },
+  loginCard: {
+    width: 380,
+    background: "white",
+    padding: 32,
+    borderRadius: 18,
+    boxShadow: "0 20px 60px rgba(0,0,0,.25)",
+  },
+  app: {
+    minHeight: "100vh",
+    display: "flex",
+    background: "#f8fafc",
+    fontFamily: "Arial",
+    color: "#0f172a",
+  },
+  sidebar: {
+    width: 250,
+    background: "#0f172a",
+    color: "white",
+    padding: 24,
+  },
+  sidebarTitle: {
+    margin: 0,
+    fontSize: 24,
+  },
+  sidebarText: {
+    color: "#cbd5e1",
+    marginBottom: 28,
+  },
+  sidebarStat: {
+    background: "#1e293b",
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 12,
+    display: "flex",
+    justifyContent: "space-between",
+  },
+  content: {
+    flex: 1,
+    padding: 28,
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  title: {
+    margin: 0,
+    fontSize: 30,
+  },
+  muted: {
+    color: "#64748b",
+  },
+  cards: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: 16,
+    marginBottom: 24,
+  },
+  card: {
+    background: "white",
+    padding: 20,
+    borderRadius: 18,
+    border: "1px solid #e5e7eb",
+  },
+  cardLabel: {
+    color: "#64748b",
+    margin: 0,
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "360px 380px 1fr",
+    gap: 18,
+    alignItems: "start",
+  },
+  panel: {
+    background: "white",
+    padding: 20,
+    borderRadius: 18,
+    border: "1px solid #e5e7eb",
+  },
+  panelWide: {
+    background: "white",
+    padding: 20,
+    borderRadius: 18,
+    border: "1px solid #e5e7eb",
+    minHeight: 460,
+  },
+  input: {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: 12,
+    marginBottom: 10,
+    borderRadius: 10,
+    border: "1px solid #cbd5e1",
+    fontSize: 14,
+  },
+  primaryButton: {
+    padding: "12px 16px",
+    background: "#4f46e5",
+    color: "white",
+    border: 0,
+    borderRadius: 10,
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+  secondaryButton: {
+    padding: "10px 14px",
+    background: "white",
+    border: "1px solid #cbd5e1",
+    borderRadius: 10,
+    cursor: "pointer",
+  },
+  darkButton: {
+    padding: "12px 16px",
+    background: "#0f172a",
+    color: "white",
+    borderRadius: 10,
+    textDecoration: "none",
+    fontWeight: "bold",
+  },
+  logoutButton: {
+    marginTop: 20,
+    width: "100%",
+    padding: 12,
+    borderRadius: 10,
+    border: 0,
+    cursor: "pointer",
+  },
+  leadList: {
+    maxHeight: 500,
+    overflowY: "auto",
+  },
+  leadItem: {
+    width: "100%",
+    textAlign: "left",
+    display: "block",
+    padding: 14,
+    marginBottom: 10,
+    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    cursor: "pointer",
+  },
+  detailBox: {
+    background: "#f8fafc",
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 16,
+  },
+  textarea: {
+    width: "100%",
+    height: 220,
+    padding: 12,
+    borderRadius: 12,
+    border: "1px solid #cbd5e1",
+    boxSizing: "border-box",
+  },
+  actions: {
+    display: "flex",
+    gap: 10,
+    marginTop: 14,
+  },
+};
