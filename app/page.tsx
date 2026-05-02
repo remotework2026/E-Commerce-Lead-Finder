@@ -9,6 +9,8 @@ type Lead = {
   signal: string;
 };
 
+const PASSWORD = "123456"; // 🔑 change this
+
 const SHEET_API_URL =
   "https://sheets.googleapis.com/v4/spreadsheets/1sf9UHNwvOkFIvRU_N4L4RB9t6h4zy3OxYdNkJm98Od8/values/A2:D100?key=AIzaSyBUevc3gkpHN1c76OdG47NyFZE1kzpvMnM";
 
@@ -16,6 +18,9 @@ const WEB_APP_URL =
   "https://script.google.com/macros/s/AKfycbwhCtJjLPymxWjcZE_7nEXvhNmBP6sPK-1FSHg-NZJQVA7rTM3b5GDM6Onjilo5lhtoPg/exec";
 
 export default function App() {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [inputPassword, setInputPassword] = useState("");
+
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [saving, setSaving] = useState(false);
@@ -46,8 +51,8 @@ export default function App() {
   };
 
   useEffect(() => {
-    loadLeads();
-  }, []);
+    if (authenticated) loadLeads();
+  }, [authenticated]);
 
   const addLead = async () => {
     if (!form.company || !form.email) {
@@ -78,6 +83,35 @@ export default function App() {
     setTimeout(loadLeads, 1500);
   };
 
+  // 🔐 LOGIN SCREEN
+  if (!authenticated) {
+    return (
+      <div style={{ padding: 50 }}>
+        <h2>Enter Password</h2>
+        <input
+          type="password"
+          placeholder="Password"
+          value={inputPassword}
+          onChange={(e) => setInputPassword(e.target.value)}
+          style={{ padding: 10, marginBottom: 10 }}
+        />
+        <br />
+        <button
+          onClick={() => {
+            if (inputPassword === PASSWORD) {
+              setAuthenticated(true);
+            } else {
+              alert("Wrong password");
+            }
+          }}
+        >
+          Login
+        </button>
+      </div>
+    );
+  }
+
+  // 🔓 MAIN APP
   return (
     <div style={{ padding: 20 }}>
       <h1>E-commerce Lead Finder CRM</h1>
@@ -112,7 +146,7 @@ export default function App() {
         style={{ display: "block", marginBottom: 8, padding: 8, width: 300 }}
       />
 
-      <button onClick={addLead} disabled={saving} style={{ padding: 10 }}>
+      <button onClick={addLead} disabled={saving}>
         {saving ? "Saving..." : "Add Lead"}
       </button>
 
