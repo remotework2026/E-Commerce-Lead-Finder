@@ -9,12 +9,17 @@ type Lead = {
   signal: string;
 };
 
-const SHEET_API_URL = "https://sheets.googleapis.com/v4/spreadsheets/1sf9UHNwvOkFIvRU_N4L4RB9t6h4zy3OxYdNkJm98Od8/values/A2:D100?key=AIzaSyBUevc3gkpHN1c76OdG47NyFZE1kzpvMnM";
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwhCtJjLPymxWjcZE_7nEXvhNmBP6sPK-1FSHg-NZJQVA7rTM3b5GDM6Onjilo5lhtoPg/exec";
+const SHEET_API_URL =
+  "https://sheets.googleapis.com/v4/spreadsheets/1sf9UHNwvOkFIvRU_N4L4RB9t6h4zy3OxYdNkJm98Od8/values/A2:D100?key=AIzaSyBUevc3gkpHN1c76OdG47NyFZE1kzpvMnM";
+
+const WEB_APP_URL =
+  "https://script.google.com/macros/s/AKfycbwhCtJjLPymxWjcZE_7nEXvhNmBP6sPK-1FSHg-NZJQVA7rTM3b5GDM6Onjilo5lhtoPg/exec";
 
 export default function App() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [saving, setSaving] = useState(false);
+
   const [form, setForm] = useState({
     company: "",
     niche: "",
@@ -22,22 +27,22 @@ export default function App() {
     signal: "",
   });
 
-  const loadLeads = () => {
-    fetch(SHEET_API_URL)
-      .then((res) => res.json())
-      .then((data) => {
-        const rows = data.values || [];
-        const formatted: Lead[] = rows.map((row: string[], i: number) => ({
-          id: i,
-          company: row[0] || "",
-          niche: row[1] || "",
-          email: row[2] || "",
-          signal: row[3] || "",
-        }));
+  const loadLeads = async () => {
+    const res = await fetch(SHEET_API_URL);
+    const data = await res.json();
 
-        setLeads(formatted);
-        setSelectedLead(formatted[0] || null);
-      });
+    const rows = data.values || [];
+
+    const formatted: Lead[] = rows.map((row: string[], i: number) => ({
+      id: i,
+      company: row[0] || "",
+      niche: row[1] || "",
+      email: row[2] || "",
+      signal: row[3] || "",
+    }));
+
+    setLeads(formatted);
+    setSelectedLead(formatted[0] || null);
   };
 
   useEffect(() => {
@@ -45,6 +50,13 @@ export default function App() {
   }, []);
 
   const addLead = async () => {
+    if (!form.company || !form.email) {
+      alert("Company and Email are required");
+      return;
+    }
+
+    setSaving(true);
+
     await fetch(WEB_APP_URL, {
       method: "POST",
       mode: "no-cors",
@@ -61,6 +73,8 @@ export default function App() {
       signal: "",
     });
 
+    setSaving(false);
+
     setTimeout(loadLeads, 1500);
   };
 
@@ -68,43 +82,41 @@ export default function App() {
     <div style={{ padding: 20 }}>
       <h1>E-commerce Lead Finder CRM</h1>
 
-      <div style={{ marginBottom: 20 }}>
-        <h2>Add New Lead</h2>
+      <h2>Add New Lead</h2>
 
-        <input
-          placeholder="Company"
-          value={form.company}
-          onChange={(e) => setForm({ ...form, company: e.target.value })}
-          style={{ display: "block", marginBottom: 8, padding: 8, width: 300 }}
-        />
+      <input
+        placeholder="Company"
+        value={form.company}
+        onChange={(e) => setForm({ ...form, company: e.target.value })}
+        style={{ display: "block", marginBottom: 8, padding: 8, width: 300 }}
+      />
 
-        <input
-          placeholder="Niche"
-          value={form.niche}
-          onChange={(e) => setForm({ ...form, niche: e.target.value })}
-          style={{ display: "block", marginBottom: 8, padding: 8, width: 300 }}
-        />
+      <input
+        placeholder="Niche"
+        value={form.niche}
+        onChange={(e) => setForm({ ...form, niche: e.target.value })}
+        style={{ display: "block", marginBottom: 8, padding: 8, width: 300 }}
+      />
 
-        <input
-          placeholder="Email"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-          style={{ display: "block", marginBottom: 8, padding: 8, width: 300 }}
-        />
+      <input
+        placeholder="Email"
+        value={form.email}
+        onChange={(e) => setForm({ ...form, email: e.target.value })}
+        style={{ display: "block", marginBottom: 8, padding: 8, width: 300 }}
+      />
 
-        <input
-          placeholder="Signal"
-          value={form.signal}
-          onChange={(e) => setForm({ ...form, signal: e.target.value })}
-          style={{ display: "block", marginBottom: 8, padding: 8, width: 300 }}
-        />
+      <input
+        placeholder="Signal"
+        value={form.signal}
+        onChange={(e) => setForm({ ...form, signal: e.target.value })}
+        style={{ display: "block", marginBottom: 8, padding: 8, width: 300 }}
+      />
 
-        <button onClick={addLead} style={{ padding: 10 }}>
-          Add Lead
-        </button>
-      </div>
+      <button onClick={addLead} disabled={saving} style={{ padding: 10 }}>
+        {saving ? "Saving..." : "Add Lead"}
+      </button>
 
-      <hr />
+      <hr style={{ marginTop: 30 }} />
 
       <h2>Leads</h2>
 
